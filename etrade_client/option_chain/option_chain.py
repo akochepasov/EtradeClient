@@ -4,10 +4,20 @@ import io
 import xml.etree.ElementTree as ET
 from logger import get_logger
 
+import pandas as pd
+
 logger = get_logger()
 
 
 class OptionChain:
+    CSV_HEADERS = [
+        "optionType", "symbol", "displaySymbol", "osiKey",
+        "strikePrice", "bid", "ask", "bidSize", "askSize",
+        "lastPrice", "netChange", "volume", "openInterest", "inTheMoney",
+        "delta", "gamma", "theta", "vega", "rho", "iv",
+        "optionCategory", "optionRootSymbol", "adjustedFlag",
+    ]
+
     def __init__(self, session, base_url):
         """
         Initialize OptionChain object with session and base URL
@@ -21,7 +31,7 @@ class OptionChain:
     def view(self, symbol, expiry_year=None, expiry_month=None, expiry_day=None,
              strike_price_near=None, no_of_strikes=None, include_weekly=False,
              skip_adjusted=True, option_category="STANDARD", chain_type="CALLPUT",
-             price_type="ATNM"):
+             price_type="ATNM", as_dataframe=False):
         """
         Retrieves option chain data for a given symbol and expiration date
 
@@ -36,7 +46,8 @@ class OptionChain:
         :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
         :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
         :param price_type: The price type. Default: ATNM. Options: ATNM, ALL
-        :return: CSV formatted string with option chain data
+        :param as_dataframe: If true, return a pandas DataFrame instead of CSV text
+        :return: CSV formatted string or pandas DataFrame with option chain data
         """
 
         if not symbol:
@@ -96,9 +107,11 @@ class OptionChain:
             parsed = json.loads(response.text)
             logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
 
+            if as_dataframe:
+                return self._generate_dataframe(data)
+
             # Generate CSV from response
-            csv_output = self._generate_csv(data)
-            return csv_output
+            return self._generate_csv(data)
         else:
             # Log actual response for debugging
             logger.debug("Response status: %s", response.status_code if response is not None else "none")
@@ -144,45 +157,59 @@ class OptionChain:
         :param data: JSON response data from the API
         :return: CSV formatted string
         """
+        rows = self._extract_rows(data)
+        if not rows:
+            return None
+
         csv_buffer = io.StringIO()
-        csv_writer = None
-
-        if data is None or "OptionChainResponse" not in data:
-            return None
-
-        option_chain_resp = data["OptionChainResponse"]
-
-        # Check if we have option data; top-level key is "OptionPair" per E*TRADE docs
-        if "OptionPair" not in option_chain_resp or not option_chain_resp["OptionPair"]:
-            logger.warning("No option chain data found in response")
-            return None
-
-        # Define fixed CSV headers (Greeks are nested under OptionGreeks)
-        headers = [
-            "optionType", "symbol", "displaySymbol", "osiKey",
-            "strikePrice", "bid", "ask", "bidSize", "askSize",
-            "lastPrice", "netChange", "volume", "openInterest", "inTheMoney",
-            "delta", "gamma", "theta", "vega", "rho", "iv",
-            "optionCategory", "optionRootSymbol", "adjustedFlag",
-        ]
-        csv_writer = csv.DictWriter(csv_buffer, fieldnames=headers, extrasaction="ignore")
+        csv_writer = csv.DictWriter(csv_buffer, fieldnames=self.CSV_HEADERS, extrasaction="ignore")
         csv_writer.writeheader()
-
-        for option_pair in option_chain_resp["OptionPair"]:
-            if option_pair is None:
-                continue
-            # Process call and put options
-            for option_key in ["Call", "Put"]:
-                if option_key not in option_pair:
-                    continue
-                option = option_pair[option_key]
-                row = self._extract_row(option)
-                csv_writer.writerow(row)
+        csv_writer.writerows(rows)
 
         csv_output = csv_buffer.getvalue()
         csv_buffer.close()
 
         return csv_output if csv_output.strip() else None
+
+    def _generate_dataframe(self, data):
+        """
+        Generate a pandas DataFrame from option chain data.
+
+        :param data: JSON response data from the API
+        :return: pandas DataFrame or None
+        """
+        rows = self._extract_rows(data)
+        if not rows:
+            return None
+
+        return pd.DataFrame(rows, columns=self.CSV_HEADERS)
+
+    def _extract_rows(self, data):
+        """
+        Flatten option pair response into a list of row dictionaries.
+
+        :param data: JSON response data from the API
+        :return: list of row dictionaries
+        """
+        if data is None or "OptionChainResponse" not in data:
+            return []
+
+        option_chain_resp = data["OptionChainResponse"]
+        if "OptionPair" not in option_chain_resp or not option_chain_resp["OptionPair"]:
+            logger.warning("No option chain data found in response")
+            return []
+
+        rows = []
+        for option_pair in option_chain_resp["OptionPair"]:
+            if option_pair is None:
+                continue
+            for option_key in ["Call", "Put"]:
+                option = option_pair.get(option_key)
+                if option is None:
+                    continue
+                rows.append(self._extract_row(option))
+
+        return rows
 
     def _extract_row(self, option):
         """
