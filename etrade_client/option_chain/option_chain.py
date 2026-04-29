@@ -18,6 +18,7 @@ class OptionChain:
     :param symbol: The market symbol for the instrument (e.g., GOOG)
     :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
     :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
+    :param as_dataframe: If true, methods return pandas DataFrames where supported
     """
 
     CSV_HEADERS = [
@@ -28,7 +29,7 @@ class OptionChain:
         "optionCategory", "optionRootSymbol", "adjustedFlag",
     ]
 
-    def __init__(self, session, base_url, symbol, option_category="STANDARD", chain_type="CALLPUT"):
+    def __init__(self, session, base_url, symbol, option_category="STANDARD", chain_type="CALLPUT", as_dataframe=False):
         """
         Initialize OptionChain object with session and base URL
 
@@ -37,6 +38,7 @@ class OptionChain:
         :param symbol: The market symbol for the instrument (e.g., GOOG)
         :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
         :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
+        :param as_dataframe: If true, methods return pandas DataFrames where supported
         """
 
         self.session = session
@@ -44,11 +46,12 @@ class OptionChain:
         self.symbol = symbol.upper()
         self.option_category = option_category
         self.chain_type = chain_type
+        self.as_dataframe = bool(as_dataframe)
 
     def view(self, expiry_year=None, expiry_month=None, expiry_day=None,
              strike_price_near=None, no_of_strikes=None, include_weekly=False,
              skip_adjusted=True, option_category=None, chain_type=None,
-             price_type="ATNM", as_dataframe=False):
+             price_type="ATNM"):
         """
         Retrieves option chain data for a given symbol and expiration date
 
@@ -62,7 +65,6 @@ class OptionChain:
         :param option_category: Optional override for constructor option_category
         :param chain_type: Optional override for constructor chain_type
         :param price_type: The price type. Default: ATNM. Options: ATNM, ALL
-        :param as_dataframe: If true, return a pandas DataFrame instead of CSV text
         :return: CSV formatted string or pandas DataFrame with option chain data
         """
 
@@ -122,7 +124,7 @@ class OptionChain:
             parsed = json.loads(response.text)
             logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
 
-            if as_dataframe:
+            if self.as_dataframe:
                 return self._generate_dataframe(data)
 
             # Generate CSV from response
@@ -145,12 +147,11 @@ class OptionChain:
                 print(f"Error: Option Chain API service error (HTTP {status})")
             return None
 
-    def getExpiryDate(self, expiry_type=None, as_dataframe=False):
+    def getExpiryDate(self, expiry_type=None):
         """
         Returns available option expiration dates for the configured symbol.
 
         :param expiry_type: Expiration type filter (for example: WEEKLY, MONTHLY, ALL)
-        :param as_dataframe: If true, return a pandas DataFrame instead of list of dicts
         :return: list of expiration date dicts or pandas DataFrame
         """
         url = f"{self.base_url}/v1/market/optionexpiredate"
@@ -182,7 +183,7 @@ class OptionChain:
             logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
 
             expiry_rows = self._extract_expiry_rows(data)
-            if as_dataframe:
+            if self.as_dataframe:
                 return pd.DataFrame(expiry_rows, columns=["year", "month", "day", "expiryType"])
             return expiry_rows
 

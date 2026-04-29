@@ -2,6 +2,7 @@ from logger import get_logger
 from option_chain.option_chain import OptionChain
 
 import pandas as pd
+import io
 
 logger = get_logger()
 
@@ -38,7 +39,8 @@ class OptionsResearch:
 
         rows = []
         for chain in option_chains:
-            chain_df = chain.view(as_dataframe=True)
+            chain_data = chain.view()
+            chain_df = self._to_dataframe(chain_data)
             if chain_df is None or chain_df.empty:
                 logger.info("No option chain data for symbol: %s", getattr(chain, "symbol", None))
                 continue
@@ -70,6 +72,21 @@ class OptionsResearch:
             return pd.DataFrame(columns=["options_ticker", "buy", "sell", "mark", "volume", "delta"])
 
         return pd.DataFrame(rows, columns=["options_ticker", "buy", "sell", "mark", "volume", "delta"])
+
+    def _to_dataframe(self, chain_data):
+        if chain_data is None:
+            return None
+        if isinstance(chain_data, pd.DataFrame):
+            return chain_data
+        if isinstance(chain_data, str):
+            text = chain_data.strip()
+            if not text:
+                return None
+            try:
+                return pd.read_csv(io.StringIO(text))
+            except Exception:
+                return None
+        return None
 
     def _filter_chain(self, chain_df):
         """
