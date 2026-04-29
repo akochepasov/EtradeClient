@@ -12,18 +12,18 @@ class OptionsResearch:
     a compact DataFrame with pricing and greek fields.
     """
 
-    def __init__(self, gamma_lo=None, gamma_hi=None, include=True):
+    def __init__(self, delta_lo=-0.99, delta_hi=0.99, include=True):
         """
         Initialize OptionsResearch object.
 
-        :param gamma_lo: minimum gamma (inclusive)
-        :param gamma_hi: maximum gamma (inclusive)
-        :param include: if true, keep rows with gamma inside [gamma_lo, gamma_hi];
-                        if false, keep rows with gamma outside [gamma_lo, gamma_hi]
+        :param delta_lo: minimum delta (inclusive)
+        :param delta_hi: maximum delta (inclusive)
+        :param include: if true, keep rows with delta inside [delta_lo, delta_hi];
+                        if false, keep rows with delta outside [delta_lo, delta_hi]
         """
-        self.gamma_lo = gamma_lo
-        self.gamma_hi = gamma_hi
         self.include = bool(include)
+        self.delta_lo = delta_lo
+        self.delta_hi = delta_hi
 
     def Find(self, option_chains):
         """
@@ -89,21 +89,21 @@ class OptionsResearch:
 
     def _filter_chain(self, chain_df):
         """
-        Apply gamma range filtering to the option chain DataFrame.
+        Apply delta filtering to the option chain DataFrame.
         """
         df = chain_df.copy()
 
-        gamma_series = pd.to_numeric(df.get("gamma"), errors="coerce")
+        delta_series = pd.to_numeric(df.get("delta"), errors="coerce")
 
-        if self.gamma_lo is None and self.gamma_hi is None:
+        if self.delta_lo is None and self.delta_hi is None:
             return df
 
         # Build in-range mask first, then include or invert it based on the flag.
         in_range_mask = pd.Series(True, index=df.index)
-        if self.gamma_lo is not None:
-            in_range_mask = in_range_mask & (gamma_series >= float(self.gamma_lo))
-        if self.gamma_hi is not None:
-            in_range_mask = in_range_mask & (gamma_series <= float(self.gamma_hi))
+        if self.delta_lo is not None:
+            in_range_mask = in_range_mask & (delta_series >= float(self.delta_lo))
+        if self.delta_hi is not None:
+            in_range_mask = in_range_mask & (delta_series <= float(self.delta_hi))
 
         if self.include:
             df = df[in_range_mask]
