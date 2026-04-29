@@ -28,7 +28,7 @@ class OptionChain:
         "optionCategory", "optionRootSymbol", "adjustedFlag",
     ]
 
-    def __init__(self, session, base_url, symbol=None, option_category="STANDARD", chain_type="CALLPUT"):
+    def __init__(self, session, base_url, symbol, option_category="STANDARD", chain_type="CALLPUT"):
         """
         Initialize OptionChain object with session and base URL
 
@@ -38,9 +38,10 @@ class OptionChain:
         :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
         :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
         """
+
         self.session = session
         self.base_url = base_url
-        self.symbol = symbol.upper() if symbol else None
+        self.symbol = symbol.upper()
         self.option_category = option_category
         self.chain_type = chain_type
 
@@ -69,16 +70,11 @@ class OptionChain:
         effective_option_category = option_category or self.option_category
         effective_chain_type = chain_type or self.chain_type
 
-        if not effective_symbol:
-            print("Error: symbol is required")
-            logger.error("Symbol parameter is required")
-            return None
-
         # URL for the API endpoint per E*TRADE docs  
         url = f"{self.base_url}/v1/market/optionchains"
 
         params = {
-            "symbol": effective_symbol.upper(),
+            "symbol": effective_symbol,
         }
 
         # Add optional parameters if provided
@@ -148,6 +144,97 @@ class OptionChain:
                 status = response.status_code if response is not None else "none"
                 print(f"Error: Option Chain API service error (HTTP {status})")
             return None
+
+    def getExpiryDate(self, expiry_type=None, as_dataframe=False):
+        """
+        Returns available option expiration dates for the configured symbol.
+
+        :param expiry_type: Expiration type filter (for example: WEEKLY, MONTHLY, ALL)
+        :param as_dataframe: If true, return a pandas DataFrame instead of list of dicts
+        :return: list of expiration date dicts or pandas DataFrame
+        """
+        url = f"{self.base_url}/v1/market/optionexpiredate"
+        params = {"symbol": self.symbol}
+        if expiry_type:
+            params["expiryType"] = str(expiry_type).upper()
+
+        response = None
+        try:
+            response = self.session.get(url, params=params, headers={"Accept": "application/json"})
+            logger.debug("Request Header: %s", response.request.headers)
+            logger.debug("Request URL: %s", response.request.url)
+        except Exception as exc:
+            logger.error("Request failed: %s", exc)
+            print(f"Error: Request failed - {exc}")
+            return None
+
+        data = None
+        xml_error = None
+        if response is not None:
+            try:
+                data = response.json()
+            except ValueError:
+                xml_error = self._parse_xml_error(response.text)
+                logger.debug("Non-JSON response body: %s", response.text)
+
+        if response is not None and response.status_code == 200 and data is not None:
+            parsed = json.loads(response.text)
+            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
+
+            expiry_rows = self._extract_expiry_rows(data)
+            if as_dataframe:
+                return pd.DataFrame(expiry_rows, columns=["year", "month", "day", "expiryType"])
+            return expiry_rows
+
+        logger.debug("Response status: %s", response.status_code if response is not None else "none")
+        logger.debug("Response body: %s", response.text if response is not None else "none")
+
+        if xml_error:
+            print(f"Error: {xml_error}")
+            logger.error("API Error: %s", xml_error)
+        elif data is not None and "OptionExpireDateResponse" in data and "Messages" in data["OptionExpireDateResponse"]:
+            messages = data["OptionExpireDateResponse"]["Messages"]
+            for error_message in (messages.get("Message") or []):
+                print(f"Error: {error_message.get('description', 'Option Expiry Date API service error')}")
+                logger.error("API Error: %s", error_message.get('description', 'Option Expiry Date API service error'))
+        else:
+            status = response.status_code if response is not None else "none"
+            print(f"Error: Option Expiry Date API service error (HTTP {status})")
+
+        return None
+
+    def _extract_expiry_rows(self, data):
+        """
+        Extract expiration date records from OptionExpireDateResponse.
+
+        :param data: JSON response data from the API
+        :return: list of expiration date dictionaries
+        """
+        if data is None or "OptionExpireDateResponse" not in data:
+            return []
+
+        payload = data["OptionExpireDateResponse"]
+        expiration_dates = payload.get("ExpirationDate")
+        if expiration_dates is None:
+            expiration_dates = payload.get("expirationDates")
+
+        if not expiration_dates:
+            return []
+
+        rows = []
+        for item in expiration_dates:
+            if item is None:
+                continue
+            rows.append(
+                {
+                    "year": item.get("year", ""),
+                    "month": item.get("month", ""),
+                    "day": item.get("day", ""),
+                    "expiryType": item.get("expiryType", ""),
+                }
+            )
+
+        return rows
 
     def _parse_xml_error(self, text):
         """
