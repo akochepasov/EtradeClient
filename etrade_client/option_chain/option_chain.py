@@ -10,6 +10,16 @@ logger = get_logger()
 
 
 class OptionChain:
+    """
+    Option chain API client.
+
+    :param session: authenticated session
+    :param base_url: base URL for API calls
+    :param symbol: The market symbol for the instrument (e.g., GOOG)
+    :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
+    :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
+    """
+
     CSV_HEADERS = [
         "optionType", "symbol", "displaySymbol", "osiKey",
         "strikePrice", "bid", "ask", "bidSize", "askSize",
@@ -18,24 +28,29 @@ class OptionChain:
         "optionCategory", "optionRootSymbol", "adjustedFlag",
     ]
 
-    def __init__(self, session, base_url):
+    def __init__(self, session, base_url, symbol=None, option_category="STANDARD", chain_type="CALLPUT"):
         """
         Initialize OptionChain object with session and base URL
 
         :param session: authenticated session
         :param base_url: base URL for API calls
+        :param symbol: The market symbol for the instrument (e.g., GOOG)
+        :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
+        :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
         """
         self.session = session
         self.base_url = base_url
+        self.symbol = symbol.upper() if symbol else None
+        self.option_category = option_category
+        self.chain_type = chain_type
 
-    def view(self, symbol, expiry_year=None, expiry_month=None, expiry_day=None,
+    def view(self, expiry_year=None, expiry_month=None, expiry_day=None,
              strike_price_near=None, no_of_strikes=None, include_weekly=False,
-             skip_adjusted=True, option_category="STANDARD", chain_type="CALLPUT",
+             skip_adjusted=True, option_category=None, chain_type=None,
              price_type="ATNM", as_dataframe=False):
         """
         Retrieves option chain data for a given symbol and expiration date
 
-        :param symbol: The market symbol for the instrument (e.g., GOOG)
         :param expiry_year: Indicates the expiry year corresponding to which the optionchain needs to be fetched
         :param expiry_month: Indicates the expiry month corresponding to which the optionchain needs to be fetched
         :param expiry_day: Indicates the expiry day corresponding to which the optionchain needs to be fetched
@@ -43,14 +58,18 @@ class OptionChain:
         :param no_of_strikes: Indicates number of strikes for which the optionchain needs to be fetched
         :param include_weekly: The include weekly options request. Default: false
         :param skip_adjusted: The skip adjusted request. Default: true
-        :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
-        :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
+        :param option_category: Optional override for constructor option_category
+        :param chain_type: Optional override for constructor chain_type
         :param price_type: The price type. Default: ATNM. Options: ATNM, ALL
         :param as_dataframe: If true, return a pandas DataFrame instead of CSV text
         :return: CSV formatted string or pandas DataFrame with option chain data
         """
 
-        if not symbol:
+        effective_symbol = self.symbol
+        effective_option_category = option_category or self.option_category
+        effective_chain_type = chain_type or self.chain_type
+
+        if not effective_symbol:
             print("Error: symbol is required")
             logger.error("Symbol parameter is required")
             return None
@@ -59,7 +78,7 @@ class OptionChain:
         url = f"{self.base_url}/v1/market/optionchains"
 
         params = {
-            "symbol": symbol.upper(),
+            "symbol": effective_symbol.upper(),
         }
 
         # Add optional parameters if provided
@@ -77,8 +96,8 @@ class OptionChain:
         # Add default parameters
         params["includeWeekly"] = "true" if include_weekly else "false"
         params["skipAdjusted"] = "true" if skip_adjusted else "false"
-        params["optionCategory"] = option_category
-        params["chainType"] = chain_type
+        params["optionCategory"] = effective_option_category
+        params["chainType"] = effective_chain_type
         params["priceType"] = price_type
 
         # Make API call

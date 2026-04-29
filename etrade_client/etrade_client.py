@@ -158,13 +158,18 @@ def option_chain_view(option_chain):
     price_type_map = {"1": "ATNM", "2": "ALL"}
     price_type = price_type_map.get(price_input, "ATNM")
 
+    ticker_option_chain = OptionChain(
+        option_chain.session,
+        option_chain.base_url,
+        symbol=symbol,
+        option_category=option_category,
+        chain_type=chain_type,
+    )
+
     # Convert string inputs to appropriate types
     params = {
-        "symbol": symbol,
         "include_weekly": include_weekly,
         "skip_adjusted": skip_adjusted,
-        "option_category": option_category,
-        "chain_type": chain_type,
         "price_type": price_type,
     }
 
@@ -194,7 +199,7 @@ def option_chain_view(option_chain):
     params = {k: v for k, v in params.items() if v is not None}
 
     # Call the view method
-    csv_result = option_chain.view(**params)
+    csv_result = ticker_option_chain.view(**params)
 
     if csv_result:
         print("\n" + "="*80)

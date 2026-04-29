@@ -12,46 +12,35 @@ class OptionsResearch:
     a compact DataFrame with pricing and greek fields.
     """
 
-    def __init__(self, option_chain, gamma_lo=None, gamma_hi=None, include=True):
+    def __init__(self, gamma_lo=None, gamma_hi=None, include=True):
         """
         Initialize OptionsResearch object.
 
-        :param option_chain: OptionChain instance used to fetch chain data
         :param gamma_lo: minimum gamma (inclusive)
         :param gamma_hi: maximum gamma (inclusive)
         :param include: if true, keep rows with gamma inside [gamma_lo, gamma_hi];
                         if false, keep rows with gamma outside [gamma_lo, gamma_hi]
         """
-        if option_chain is None or not isinstance(option_chain, OptionChain):
-            raise ValueError("option_chain must be an OptionChain instance")
-
         self.gamma_lo = gamma_lo
         self.gamma_hi = gamma_hi
         self.include = bool(include)
-        self.option_chain = option_chain
 
-    def Find(self, tickers):
+    def Find(self, option_chains):
         """
-        Find options for the provided list of underlying tickers.
+        Find and filter options from the provided list of OptionChain objects.
 
         Returns a DataFrame with rows containing options ticker, buy, sell,
         mark, volume, and delta.
 
-        :param tickers: list of underlying symbols
+        :param option_chains: list of OptionChain instances
         :return: pandas DataFrame
         """
-        if not tickers:
-            return pd.DataFrame(columns=["options_ticker", "buy", "sell", "mark", "volume", "delta"])
 
         rows = []
-        for ticker in tickers:
-            symbol = str(ticker).strip().upper()
-            if not symbol:
-                continue
-
-            chain_df = self.option_chain.view(symbol=symbol, as_dataframe=True)
+        for chain in option_chains:
+            chain_df = chain.view(as_dataframe=True)
             if chain_df is None or chain_df.empty:
-                logger.info("No option chain data for ticker: %s", symbol)
+                logger.info("No option chain data for symbol: %s", getattr(chain, "symbol", None))
                 continue
 
             filtered_df = self._filter_chain(chain_df)
