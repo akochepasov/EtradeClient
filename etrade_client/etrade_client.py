@@ -1,12 +1,10 @@
 """This Python script provides examples on using the E*TRADE API endpoints"""
 from __future__ import print_function
-import webbrowser
 import configparser
 import datetime
 from pathlib import Path
-from requests import RequestException
-from requests_oauthlib import OAuth1Session
 from logger import get_logger
+from auth.auth import EtradeAuthorization
 from accounts.accounts import Accounts
 from market.market import Market
 from option_chain.option_chain import OptionChain
@@ -19,9 +17,8 @@ config.read(ini_file)
 logger = get_logger()
 
 
-def oauth():
+def main():
     """Allows user authorization for the sample application with OAuth 1"""
-
     cfg = config["DEFAULT"]
 
     menu_items = {"1": "Sandbox Consumer Key",
@@ -45,75 +42,18 @@ def oauth():
             print("Unknown Option Selected!")
     print("")
 
-    request_token_url = f"{base_url}/oauth/request_token"
-    access_token_url = f"{base_url}/oauth/access_token"
+    auth = EtradeAuthorization()
+    auth_result = auth.authorize(cfg, base_url)
 
-    consumer_key = cfg["CONSUMER_KEY"]
-    consumer_secret = cfg["CONSUMER_SECRET"]
-
-    oauth_session = OAuth1Session(
-        client_key=consumer_key,
-        client_secret=consumer_secret,
-        callback_uri="oob"
-    )
-
-    # Step 1: Get OAuth 1 request token and secret
-    try:
-        request_token_data = oauth_session.fetch_request_token(
-            request_token_url,
-            params={"format": "json"}
-        )
-    except (RequestException, ValueError) as exc:
-        raise RuntimeError("Unable to fetch OAuth request token from E*TRADE.") from exc
-
-    request_token = request_token_data.get("oauth_token")
-    request_token_secret = request_token_data.get("oauth_token_secret")
-    if not request_token or not request_token_secret:
-        raise RuntimeError("E*TRADE did not return a valid OAuth request token response.")
-
-    # Step 2: Go through the authentication flow. Login to E*TRADE.
-    # After you login, the page will provide a verification code to enter.
-    authorize_url = (
-        "https://us.etrade.com/e/t/etws/authorize"
-        f"?key={consumer_key}&token={request_token}"
-    )
-    webbrowser.open(authorize_url)
-    text_code = input("Please accept agreement and enter verification code from browser: ").strip()
-
-    # Step 3: Exchange the authorized request token for an authenticated OAuth 1 session
-    try:
-        oauth_session = OAuth1Session(
-            client_key=consumer_key,
-            client_secret=consumer_secret,
-            resource_owner_key=request_token,
-            resource_owner_secret=request_token_secret,
-            verifier=text_code
-        )
-        access_token_data = oauth_session.fetch_access_token(access_token_url)
-        access_token = access_token_data["oauth_token"]
-        access_token_secret = access_token_data["oauth_token_secret"]
-        session = OAuth1Session(
-            client_key=consumer_key,
-            client_secret=consumer_secret,
-            resource_owner_key=access_token,
-            resource_owner_secret=access_token_secret
-        )
-    except (KeyError, RequestException, ValueError) as exc:
-        raise RuntimeError(
-            "OAuth access token exchange failed. This usually means one of: "
-            "(1) wrong consumer key/secret environment, "
-            "(2) request token expired or already used, "
-            "(3) incorrect verifier code."
-        ) from exc
-
-    main_menu(session, base_url)
+    main_menu(auth_result.session, auth_result.base_url)
 
 
-def option_chain_view(option_chain):
+def option_chain_view(session, base_url):
     """
     Interactive option chain view with user input for parameters
 
-    :param option_chain: OptionChain instance
+    :param session: authenticated session
+    :param base_url: base URL for API calls
     """
     # Get required parameter
     symbol = input("\nPlease enter Stock Symbol: ").strip().upper()
@@ -159,8 +99,8 @@ def option_chain_view(option_chain):
     price_type = price_type_map.get(price_input, "ATNM")
 
     ticker_option_chain = OptionChain(
-        option_chain.session,
-        option_chain.base_url,
+        session,
+        base_url,
         symbol=symbol,
         option_category=option_category,
         chain_type=chain_type,
@@ -251,8 +191,7 @@ def main_menu(session, base_url):
             accounts = Accounts(session, base_url)
             accounts.account_list()
         elif selection == "3":
-            option_chain = OptionChain(session, base_url)
-            option_chain_view(option_chain)
+            option_chain_view(session, base_url)
         elif selection == "4":
             break
         else:
@@ -260,4 +199,4 @@ def main_menu(session, base_url):
 
 
 if __name__ == "__main__":
-    oauth()
+    main()
