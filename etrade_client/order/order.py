@@ -2,7 +2,7 @@ import json
 import configparser
 import random
 import re
-from logger import get_logger
+from etrade_client.logger import get_logger
 
 # loading configuration file
 config = configparser.ConfigParser()

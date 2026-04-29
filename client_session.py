@@ -3,11 +3,11 @@ from __future__ import print_function
 import configparser
 import datetime
 from pathlib import Path
-from logger import get_logger
-from auth.auth import EtradeAuthorization
-from accounts.accounts import Accounts
-from market.market import Market
-from option_chain.option_chain import OptionChain
+from etrade_client.logger import get_logger
+from etrade_client.auth.auth import EtradeAuthorization
+from etrade_client.accounts.accounts import Accounts
+from etrade_client.market.market import Market
+from etrade_client.option_chain.option_chain import OptionChain
 
 # loading configuration file
 config = configparser.ConfigParser()

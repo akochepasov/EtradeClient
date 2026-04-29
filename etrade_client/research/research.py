@@ -1,5 +1,4 @@
-from logger import get_logger
-from option_chain.option_chain import OptionChain
+from etrade_client.logger import get_logger
 
 import pandas as pd
 import io

@@ -2,7 +2,7 @@ import json
 import csv
 import io
 import xml.etree.ElementTree as ET
-from logger import get_logger
+from etrade_client.logger import get_logger
 
 import pandas as pd
 

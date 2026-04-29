@@ -1,7 +1,7 @@
 import json
 import configparser
-from logger import get_logger
-from order.order import Order
+from etrade_client.logger import get_logger
+from etrade_client.order.order import Order
 
 # loading configuration file
 config = configparser.ConfigParser()

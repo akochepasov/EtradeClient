@@ -1,6 +1,6 @@
 import json
 from urllib.parse import quote
-from logger import get_logger
+from etrade_client.logger import get_logger
 
 logger = get_logger()
 
