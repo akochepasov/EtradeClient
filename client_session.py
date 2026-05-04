@@ -61,10 +61,8 @@ def option_chain_view(session, base_url):
         print("Error: symbol is required")
         return
 
-    # Get optional expiration date parameters
-    expiry_year = input("Enter expiry year (optional, press Enter to skip): ").strip()
-    expiry_month = input("Enter expiry month (1-12, optional, press Enter to skip): ").strip()
-    expiry_day = input("Enter expiry day (optional, press Enter to skip): ").strip()
+    # Get optional expiration date parameter
+    expiry_date = input("Enter expiry date (MM-DD-YYYY, optional, press Enter to skip): ").strip()
 
     # Get other optional parameters
     strike_price_near = input("Enter strike price near (optional, press Enter to skip): ").strip()
@@ -111,20 +109,8 @@ def option_chain_view(session, base_url):
         "price_type": price_type,
     }
 
-    if expiry_year:
-        params["expiry_year"] = int(expiry_year) if expiry_year.isdigit() else None
-    if expiry_month:
-        params["expiry_month"] = int(expiry_month) if expiry_month.isdigit() else None
-        # If month is given but year is not, infer the year: use current year unless
-        # that month has already passed, in which case use next year.
-        if not expiry_year and expiry_month.isdigit():
-            today = datetime.date.today()
-            month = int(expiry_month)
-            inferred_year = today.year if month >= today.month else today.year + 1
-            params["expiry_year"] = inferred_year
-            print(f"(expiry year defaulted to {inferred_year})")
-    if expiry_day:
-        params["expiry_day"] = int(expiry_day) if expiry_day.isdigit() else None
+    if expiry_date:
+        params["expiry_date"] = expiry_date
     if strike_price_near:
         try:
             params["strike_price_near"] = float(strike_price_near)

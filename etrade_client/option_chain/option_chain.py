@@ -1,6 +1,7 @@
 import json
 import csv
 import io
+from datetime import datetime
 import xml.etree.ElementTree as ET
 from etrade_client.logger import get_logger
 
@@ -48,16 +49,14 @@ class OptionChain:
         self.chain_type = chain_type
         self.as_dataframe = bool(as_dataframe)
 
-    def view(self, expiry_year=None, expiry_month=None, expiry_day=None,
+    def view(self, expiry_date=None,
              strike_price_near=None, no_of_strikes=None,
              skip_adjusted=True, option_category=None, chain_type=None,
              price_type="ATNM"):
         """
         Retrieves option chain data for a given symbol and expiration date
 
-        :param expiry_year: Indicates the expiry year corresponding to which the optionchain needs to be fetched
-        :param expiry_month: Indicates the expiry month corresponding to which the optionchain needs to be fetched
-        :param expiry_day: Indicates the expiry day corresponding to which the optionchain needs to be fetched
+        :param expiry_date: Expiry date in MM-DD-YYYY format (for example: 06-18-2026)
         :param strike_price_near: The optionchains fetched will have strike price nearer to this value
         :param no_of_strikes: Indicates number of strikes for which the optionchain needs to be fetched
         :param skip_adjusted: The skip adjusted request. Default: true
@@ -79,12 +78,16 @@ class OptionChain:
         }
 
         # Add optional parameters if provided
-        if expiry_year:
-            params["expiryYear"] = expiry_year
-        if expiry_month:
-            params["expiryMonth"] = expiry_month
-        if expiry_day:
-            params["expiryDay"] = expiry_day
+        if expiry_date:
+            try:
+                parsed_expiry = datetime.strptime(str(expiry_date), "%m-%d-%Y")
+                params["expiryYear"] = parsed_expiry.year
+                params["expiryMonth"] = parsed_expiry.month
+                params["expiryDay"] = parsed_expiry.day
+            except ValueError:
+                print("Error: expiry_date must be in MM-DD-YYYY format")
+                logger.error("Invalid expiry_date format: %s", expiry_date)
+                return None
         if strike_price_near:
             params["strikePriceNear"] = strike_price_near
         if no_of_strikes:
@@ -193,7 +196,7 @@ class OptionChain:
                 expiry_rows = [row for row in expiry_rows if str(row.get("expiryType", "")).upper() != "WEEKLY"]
 
             if self.as_dataframe:
-                return pd.DataFrame(expiry_rows, columns=["year", "month", "day", "expiryType"])
+                return pd.DataFrame(expiry_rows, columns=["expiryDate", "expiryType"])
             return expiry_rows
 
         logger.debug("Response status: %s", response.status_code if response is not None else "none")
@@ -235,11 +238,18 @@ class OptionChain:
         for item in expiration_dates:
             if item is None:
                 continue
+            year = item.get("year", "")
+            month = item.get("month", "")
+            day = item.get("day", "")
+            expiry_date = ""
+            if year != "" and month != "" and day != "":
+                try:
+                    expiry_date = f"{int(month):02d}-{int(day):02d}-{int(year):04d}"
+                except (TypeError, ValueError):
+                    expiry_date = ""
             rows.append(
                 {
-                    "year": item.get("year", ""),
-                    "month": item.get("month", ""),
-                    "day": item.get("day", ""),
+                    "expiryDate": expiry_date,
                     "expiryType": item.get("expiryType", ""),
                 }
             )
