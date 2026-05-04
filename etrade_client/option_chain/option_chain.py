@@ -22,7 +22,7 @@ class OptionChain:
     """
 
     CSV_HEADERS = [
-        "optionType", "symbol", "displaySymbol", "osiKey",
+        "optionType", "symbol", "displaySymbol",
         "strikePrice", "bid", "ask", "bidSize", "askSize",
         "lastPrice", "netChange", "volume", "openInterest", "inTheMoney",
         "delta", "gamma", "theta", "vega", "rho", "iv",
@@ -49,7 +49,7 @@ class OptionChain:
         self.as_dataframe = bool(as_dataframe)
 
     def view(self, expiry_year=None, expiry_month=None, expiry_day=None,
-             strike_price_near=None, no_of_strikes=None, include_weekly=False,
+             strike_price_near=None, no_of_strikes=None,
              skip_adjusted=True, option_category=None, chain_type=None,
              price_type="ATNM"):
         """
@@ -60,7 +60,6 @@ class OptionChain:
         :param expiry_day: Indicates the expiry day corresponding to which the optionchain needs to be fetched
         :param strike_price_near: The optionchains fetched will have strike price nearer to this value
         :param no_of_strikes: Indicates number of strikes for which the optionchain needs to be fetched
-        :param include_weekly: The include weekly options request. Default: false
         :param skip_adjusted: The skip adjusted request. Default: true
         :param option_category: Optional override for constructor option_category
         :param chain_type: Optional override for constructor chain_type
@@ -92,7 +91,6 @@ class OptionChain:
             params["noOfStrikes"] = no_of_strikes
 
         # Add default parameters
-        params["includeWeekly"] = "true" if include_weekly else "false"
         params["skipAdjusted"] = "true" if skip_adjusted else "false"
         params["optionCategory"] = effective_option_category
         params["chainType"] = effective_chain_type
@@ -147,15 +145,20 @@ class OptionChain:
                 print(f"Error: Option Chain API service error (HTTP {status})")
             return None
 
-    def getExpiryDate(self, expiry_type=None):
+    def getExpiryDates(self, expiry_type=None, weekly=None):
         """
         Returns available option expiration dates for the configured symbol.
 
         :param expiry_type: Expiration type filter (for example: WEEKLY, MONTHLY, ALL)
+        :param weekly: Optional weekly filter. True=weekly only, False=exclude weekly, None=no weekly filtering.
         :return: list of expiration date dicts or pandas DataFrame
         """
         url = f"{self.base_url}/v1/market/optionexpiredate"
         params = {"symbol": self.symbol}
+        # Weekly filtering is done client-side, but to make it effective we must
+        # fetch all expiry types from the API when no explicit type is requested.
+        if weekly is not None and not expiry_type:
+            expiry_type = "ALL"
         if expiry_type:
             params["expiryType"] = str(expiry_type).upper()
 
@@ -183,6 +186,12 @@ class OptionChain:
             logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
 
             expiry_rows = self._extract_expiry_rows(data)
+
+            if weekly is True:
+                expiry_rows = [row for row in expiry_rows if str(row.get("expiryType", "")).upper() == "WEEKLY"]
+            elif weekly is False:
+                expiry_rows = [row for row in expiry_rows if str(row.get("expiryType", "")).upper() != "WEEKLY"]
+
             if self.as_dataframe:
                 return pd.DataFrame(expiry_rows, columns=["year", "month", "day", "expiryType"])
             return expiry_rows
@@ -331,7 +340,6 @@ class OptionChain:
             "optionType":       option.get("optionType", ""),
             "symbol":           option.get("symbol", ""),
             "displaySymbol":    option.get("displaySymbol", ""),
-            "osiKey":           option.get("osiKey", ""),
             "strikePrice":      option.get("strikePrice", ""),
             "bid":              option.get("bid", ""),
             "ask":              option.get("ask", ""),

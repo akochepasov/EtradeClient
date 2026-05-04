@@ -69,7 +69,6 @@ def option_chain_view(session, base_url):
     # Get other optional parameters
     strike_price_near = input("Enter strike price near (optional, press Enter to skip): ").strip()
     no_of_strikes = input("Enter number of strikes (optional, press Enter to skip): ").strip()
-    include_weekly = input("Include weekly options? (true/false, default: false): ").strip().lower() == "true"
     skip_adjusted = input("Skip adjusted options? (true/false, default: true): ").strip().lower() != "false"
 
     # Option category
@@ -108,7 +107,6 @@ def option_chain_view(session, base_url):
 
     # Convert string inputs to appropriate types
     params = {
-        "include_weekly": include_weekly,
         "skip_adjusted": skip_adjusted,
         "price_type": price_type,
     }
