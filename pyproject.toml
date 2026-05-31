@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "etrade-client"
+version = "1.0.0"
+description = "Python client for E*TRADE trading workflows in CLI and notebooks."
+readme = "README.md"
+requires-python = ">=3.6"
+dependencies = [
+  "requests-oauthlib>=2.0.0,<3.0.0",
+  "pandas>=1.1.5,<3.0.0",
+  "dataclasses>=0.8; python_version < '3.7'",
+]
+keywords = ["etrade", "trading", "options", "oauth"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Office/Business :: Financial :: Investment",
+]
+
+[project.scripts]
+etrade-client = "client_session:main"
+
+[tool.setuptools]
+py-modules = ["client_session"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["etrade_client*"]

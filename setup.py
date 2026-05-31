@@ -1,9 +1,11 @@
-from distutils.core import setup
+"""Legacy shim for setuptools/PEP 517 builds.
 
-setup(
-    name='EtradePythonClient',
-    version='1.0',
-    packages=['etrade_python_client',],
-    long_description=open('README.md').read(),
-)
+Primary package metadata now lives in pyproject.toml.
+"""
+
+from setuptools import setup
+
+
+if __name__ == "__main__":
+    setup()
 

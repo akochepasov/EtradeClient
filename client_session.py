@@ -4,10 +4,10 @@ import configparser
 import datetime
 from pathlib import Path
 from etrade_client.logger import get_logger
-from etrade_client.auth.auth import EtradeAuthorization
-from etrade_client.accounts.accounts import Accounts
-from etrade_client.market.market import Market
-from etrade_client.option_chain.option_chain import OptionChain
+from etrade_client.auth import EtradeAuthorization
+from etrade_client.accounts import Accounts
+from etrade_client.market import Market
+from etrade_client.option_chain import OptionChain
 
 # loading configuration file
 config = configparser.ConfigParser()
