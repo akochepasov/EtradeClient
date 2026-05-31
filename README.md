@@ -34,3 +34,13 @@ etrade-client
 ## Configuration
 
 Create a `config.ini` with the required API keys and E*TRADE base URLs.
+
+Example:
+
+```ini
+[DEFAULT]
+CONSUMER_KEY=xxx
+CONSUMER_SECRET=yyy
+SANDBOX_BASE_URL=https://apisb.etrade.com
+PROD_BASE_URL=https://api.etrade.com
+```
