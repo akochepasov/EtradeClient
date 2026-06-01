@@ -67,7 +67,6 @@ venv.bak/
 *.log
 
 # Secrets / credentials
-config.ini
 *.pem
 *.key
 *.p12

@@ -33,14 +33,22 @@ etrade-client
 
 ## Configuration
 
-Create a `config.ini` with the required API keys and E*TRADE base URLs.
+API secrets are stored securely via the
+[`keyring`](https://pypi.org/project/keyring/) library (service: `EtradeClient`).
+The CLI will prompt you on first run, or you can store them manually:
 
-Example:
+```bash
+python3 -c "
+import keyring
+keyring.set_password('EtradeClient', 'CONSUMER_KEY', 'YOUR_KEY')
+keyring.set_password('EtradeClient', 'CONSUMER_SECRET', 'YOUR_SECRET')
+"
+```
+
+`config.ini` still holds the (non-sensitive) base URLs:
 
 ```ini
 [DEFAULT]
-CONSUMER_KEY=xxx
-CONSUMER_SECRET=yyy
 SANDBOX_BASE_URL=https://apisb.etrade.com
 PROD_BASE_URL=https://api.etrade.com
 ```
