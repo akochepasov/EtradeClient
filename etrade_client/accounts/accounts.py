@@ -1,11 +1,8 @@
 import json
-import configparser
+
+from etrade_client.auth.auth import get_consumer_key
 from etrade_client.logger import get_logger
 from etrade_client.order.order import Order
-
-# loading configuration file
-config = configparser.ConfigParser()
-config.read('config.ini')
 
 logger = get_logger()
 
@@ -175,7 +172,7 @@ class Accounts:
 
         # Add parameters and header information
         params = {"instType": self.account["institutionType"], "realTimeNAV": "true"}
-        headers = {"consumerkey": config["DEFAULT"]["CONSUMER_KEY"]}
+        headers = {"consumerkey": get_consumer_key()}
 
         # Make API call for GET request
         response = self.session.get(url, params=params, headers=headers)

@@ -1,12 +1,9 @@
 import json
-import configparser
 import random
 import re
-from etrade_client.logger import get_logger
 
-# loading configuration file
-config = configparser.ConfigParser()
-config.read('config.ini')
+from etrade_client.auth.auth import get_consumer_key
+from etrade_client.logger import get_logger
 
 logger = get_logger()
 
@@ -33,7 +30,7 @@ class Order:
         url = self.base_url + "/v1/accounts/" + self.account["accountIdKey"] + "/orders/preview.json"
 
         # Add parameters and header information
-        headers = {"Content-Type": "application/xml", "consumerKey": config["DEFAULT"]["CONSUMER_KEY"]}
+        headers = {"Content-Type": "application/xml", "consumerKey": get_consumer_key()}
 
         # Add payload for POST Request
         payload = """<PreviewOrderRequest>
@@ -158,7 +155,7 @@ class Order:
                     url = self.base_url + "/v1/accounts/" + account["accountIdKey"] + "/orders/preview.json"
 
                     # Add parameters and header information
-                    headers = {"Content-Type": "application/xml", "consumerKey": config["DEFAULT"]["CONSUMER_KEY"]}
+                    headers = {"Content-Type": "application/xml", "consumerKey": get_consumer_key()}
 
                     # Add payload for POST Request
                     payload = """<PreviewOrderRequest>
@@ -459,7 +456,7 @@ class Order:
 
             # Add parameters and header information
             params_open = {"status": "OPEN"}
-            headers = {"consumerkey": config["DEFAULT"]["CONSUMER_KEY"]}
+            headers = {"consumerkey": get_consumer_key()}
 
             # Make API call for GET request
             response_open = self.session.get(url, params=params_open, headers=headers)
@@ -567,7 +564,7 @@ class Order:
                         url = self.base_url + "/v1/accounts/" + self.account["accountIdKey"] + "/orders/cancel.json"
 
                         # Add parameters and header information
-                        headers = {"Content-Type": "application/xml", "consumerKey": config["DEFAULT"]["CONSUMER_KEY"]}
+                        headers = {"Content-Type": "application/xml", "consumerKey": get_consumer_key()}
 
                         # Add payload for POST Request
                         payload = """<CancelOrderRequest>
@@ -647,7 +644,7 @@ class Order:
             url = self.base_url + "/v1/accounts/" + self.account["accountIdKey"] + "/orders.json"
 
             # Add parameters and header information
-            headers = {"consumerkey": config["DEFAULT"]["CONSUMER_KEY"]}
+            headers = {"consumerkey": get_consumer_key()}
             params_open = {"status": "OPEN"}
             params_executed = {"status": "EXECUTED"}
             params_indiv_fills = {"status": "INDIVIDUAL_FILLS"}

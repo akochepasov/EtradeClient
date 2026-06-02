@@ -1,15 +1,16 @@
 """This Python script provides examples on using the E*TRADE API endpoints"""
 from __future__ import print_function
 import configparser
-import datetime
 from pathlib import Path
-from etrade_client.logger import get_logger
+
 from etrade_client.auth import EtradeAuthorization
+from etrade_client.auth.auth import get_consumer_key, set_consumer_key, set_consumer_secret
 from etrade_client.accounts import Accounts
+from etrade_client.logger import get_logger
 from etrade_client.market import Market
 from etrade_client.option_chain import OptionChain
 
-# loading configuration file
+# loading configuration file (base URLs only; secrets are in keyring)
 config = configparser.ConfigParser()
 ini_file = Path(__file__).parent / "config.ini"
 config.read(ini_file)
@@ -20,6 +21,8 @@ logger = get_logger()
 def main():
     """Allows user authorization for the sample application with OAuth 1"""
     cfg = config["DEFAULT"]
+
+    _ensure_credentials()
 
     menu_items = {"1": "Sandbox Consumer Key",
                   "2": "Live Consumer Key",
@@ -46,6 +49,23 @@ def main():
     auth_result = auth.authorize(cfg, base_url)
 
     main_menu(auth_result.session, auth_result.base_url)
+
+
+def _ensure_credentials():
+    """Prompt for consumer key/secret if not already in keyring."""
+    if get_consumer_key() and get_consumer_secret():
+        return
+    print("No E*TRADE API credentials found in keyring (service: EtradeClient).")
+    print("You can get these from the E*TRADE Developer Portal.\n")
+    ck = input("Consumer key: ").strip()
+    cs = input("Consumer secret: ").strip()
+    if ck and cs:
+        set_consumer_key(ck)
+        set_consumer_secret(cs)
+        print("Credentials saved.\n")
+    else:
+        print("Both values are required. Exiting.")
+        raise SystemExit(1)
 
 
 def option_chain_view(session, base_url):

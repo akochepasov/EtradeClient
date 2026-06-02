@@ -1,8 +1,29 @@
 import webbrowser
 from dataclasses import dataclass
 
+import keyring
 from requests import RequestException
 from requests_oauthlib import OAuth1Session
+
+
+def get_consumer_key() -> str:
+    """Return the E*TRADE consumer key from the system keychain."""
+    return keyring.get_password("EtradeClient", "CONSUMER_KEY")
+
+
+def get_consumer_secret() -> str:
+    """Return the E*TRADE consumer secret from the system keychain."""
+    return keyring.get_password("EtradeClient", "CONSUMER_SECRET")
+
+
+def set_consumer_key(value: str) -> None:
+    """Store the E*TRADE consumer key in the system keychain."""
+    keyring.set_password("EtradeClient", "CONSUMER_KEY", value)
+
+
+def set_consumer_secret(value: str) -> None:
+    """Store the E*TRADE consumer secret in the system keychain."""
+    keyring.set_password("EtradeClient", "CONSUMER_SECRET", value)
 
 
 @dataclass
@@ -12,7 +33,12 @@ class AuthorizationResult:
 
 
 class EtradeAuthorization:
-    """Handles OAuth 1 authorization flow for E*TRADE."""
+    """Handles OAuth 1 authorization flow for E*TRADE.
+
+    Note: OAuth access tokens are not persisted across runs — the full
+    browser authorization flow runs every time.  A future improvement
+    would be to store tokens in keyring and reuse them until a 401.
+    """
 
     def authorize(self, cfg, base_url):
         """
@@ -28,8 +54,8 @@ class EtradeAuthorization:
         request_token_url = f"{base_url}/oauth/request_token"
         access_token_url = f"{base_url}/oauth/access_token"
 
-        consumer_key = cfg["CONSUMER_KEY"]
-        consumer_secret = cfg["CONSUMER_SECRET"]
+        consumer_key = get_consumer_key()
+        consumer_secret = get_consumer_secret()
 
         oauth_session = OAuth1Session(
             client_key=consumer_key,
