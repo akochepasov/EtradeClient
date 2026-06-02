@@ -23,14 +23,6 @@ from etrade_client.market import Market
 from etrade_client.option_chain import OptionChain
 ```
 
-## CLI
-
-After install, run:
-
-```bash
-etrade-client
-```
-
 ## Configuration
 
 API secrets are stored securely via the
@@ -51,7 +43,7 @@ keyring.set_password('EtradeClient', 'CONSUMER_SECRET', 'YOUR_SECRET')
 "
 ```
 
-`config.ini` still holds the (non-sensitive) base URLs:
+`config.ini` still holds non-sensitive base URLs only:
 
 ```ini
 [DEFAULT]
