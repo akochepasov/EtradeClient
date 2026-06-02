@@ -35,10 +35,16 @@ etrade-client
 
 API secrets are stored securely via the
 [`keyring`](https://pypi.org/project/keyring/) library (service: `EtradeClient`).
-The CLI will prompt you on first run, or you can store them manually:
+Run the helper to save your key/secret interactively:
 
 ```bash
-python3 -c "
+python -m etrade_client.authorize
+```
+
+Or store them manually:
+
+```bash
+python -c "
 import keyring
 keyring.set_password('EtradeClient', 'CONSUMER_KEY', 'YOUR_KEY')
 keyring.set_password('EtradeClient', 'CONSUMER_SECRET', 'YOUR_SECRET')
