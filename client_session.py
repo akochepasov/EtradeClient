@@ -53,7 +53,7 @@ def main():
 
 def _ensure_credentials():
     """Prompt for consumer key/secret if not already in keyring."""
-    if get_consumer_key():
+    if get_consumer_key() and get_consumer_secret():
         return
     print("No E*TRADE API credentials found in keyring (service: EtradeClient).")
     print("You can get these from the E*TRADE Developer Portal.\n")
