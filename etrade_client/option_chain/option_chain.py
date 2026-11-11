@@ -373,3 +373,50 @@ class OptionChain:
             "adjustedFlag":     option.get("adjustedFlag", ""),
         }
         return row
+
+
+_RESEARCH_COLUMNS = [
+    "optionType", "delta", "strikePrice", "bid", "ask",
+    "lastPrice", "volume", "openInterest",
+]
+
+
+def get_options_research(chain_df, opt_type, dmin=0.05, dmax=0.3, query_param=None):
+    """
+    Filter an option-chain DataFrame for research.
+
+    :param chain_df: option chain DataFrame
+    :param opt_type: option type to keep, such as CALL or PUT
+    :param dmin: minimum absolute delta, inclusive
+    :param dmax: maximum absolute delta, exclusive
+    :param query_param: optional pandas query string
+    :return: filtered DataFrame with a midpoint mark column
+    """
+    option_mask = (chain_df["optionType"] == opt_type)
+    delta_mask = (abs(chain_df["delta"]) >= dmin) & (abs(chain_df["delta"]) < dmax)
+    open_interest_mask = (chain_df["openInterest"] != 0)
+    chain_df = chain_df[option_mask & delta_mask & open_interest_mask]
+    if query_param:
+        chain_df = chain_df.query(query_param)
+    chain_df = chain_df[_RESEARCH_COLUMNS]
+    chain_df = chain_df.assign(mark=lambda x: (x.ask + x.bid) / 2)
+    return chain_df
+
+
+def extend_options_research(chain_df, cost_basis, d, qty=100):
+    """
+    Add premium and annualized yield columns.
+
+    Puts use strike price as capital per share. Other option types use cost_basis.
+
+    :param chain_df: filtered chain with a mark column
+    :param cost_basis: per-share capital used for non-put yields
+    :param d: calendar days to expiry; must be positive
+    :param qty: share multiplier, 100 for one contract
+    :return: DataFrame with gain_total and annual_rate
+    """
+    assert d > 0, "Days to expiry must be positive"
+    chain_df = chain_df.assign(gain_total=lambda x: x.mark * qty)
+    capital_per_share = chain_df.strikePrice.where(chain_df.optionType == "PUT", cost_basis)
+    chain_df = chain_df.assign(annual_rate=100 * chain_df.mark / capital_per_share * 365 / d)
+    return chain_df
