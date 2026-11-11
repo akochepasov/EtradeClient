@@ -40,12 +40,13 @@ class EtradeAuthorization:
     would be to store tokens in keyring and reuse them until a 401.
     """
 
-    def authorize(self, cfg, base_url):
+    def authorize(self, cfg, base_url, open_browser=True):
         """
         Authorize user and return session + base_url.
 
         :param cfg: selected config section (for example: config["DEFAULT"])
         :param base_url: selected base URL
+        :param open_browser: open the default browser; if False, print the authorization URL
         :return: AuthorizationResult
         """
         if not base_url:
@@ -82,7 +83,10 @@ class EtradeAuthorization:
             "https://us.etrade.com/e/t/etws/authorize"
             f"?key={consumer_key}&token={request_token}"
         )
-        webbrowser.open(authorize_url)
+        if open_browser:
+            webbrowser.open(authorize_url)
+        else:
+            print(f"Open this URL in your browser to authorize: {authorize_url}")
         verifier = input("Please accept agreement and enter verification code from browser: ").strip()
 
         # Step 3: Exchange request token for access token and build authenticated session.

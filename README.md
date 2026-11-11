@@ -50,3 +50,15 @@ keyring.set_password('EtradeClient', 'CONSUMER_SECRET', 'YOUR_SECRET')
 SANDBOX_BASE_URL=https://apisb.etrade.com
 PROD_BASE_URL=https://api.etrade.com
 ```
+
+## Authorization
+
+`EtradeAuthorization.authorize(cfg, base_url)` opens the default browser.
+To use a different browser, print the authorization URL instead:
+
+```python
+auth_result = EtradeAuthorization().authorize(cfg, base_url, open_browser=False)
+```
+
+Open the printed URL in your preferred browser and enter the verification code
+when prompted. Treat the URL as sensitive; it contains an OAuth request token.
