@@ -66,7 +66,6 @@ class Order:
         # Handle and parse response
         if response is not None and response.status_code == 200:
             parsed = json.loads(response.text)
-            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
             data = response.json()
             print("\nPreview Order:")
 
@@ -200,7 +199,6 @@ class Order:
                     # Handle and parse response
                     if response is not None and response.status_code == 200:
                         parsed = json.loads(response.text)
-                        logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
                         data = response.json()
                         print("\nPreview Order: ")
                         if data is not None and "PreviewOrderResponse" in data and "PreviewIds" in data["PreviewOrderResponse"]:
@@ -461,8 +459,6 @@ class Order:
             # Make API call for GET request
             response_open = self.session.get(url, params=params_open, headers=headers, timeout=self.timeout)
 
-            logger.debug("Response Body: %s", response_open.text)
-
             print("\nOpen Orders: ")
             # Handle and parse response
             if response_open.status_code == 204:
@@ -579,7 +575,6 @@ class Order:
                         # Handle and parse response
                         if response is not None and response.status_code == 200:
                             parsed = json.loads(response.text)
-                            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
                             data = response.json()
                             if data is not None and "CancelOrderResponse" in data \
                                     and "orderId" in data["CancelOrderResponse"]:
@@ -587,7 +582,6 @@ class Order:
                                     data["CancelOrderResponse"]["orderId"]) + " successfully Cancelled.")
                             else:
                                 # Handle errors
-                                logger.debug("Response Body: %s", response.text)
                                 data = response.json()
                                 if 'Error' in data and 'message' in data["Error"] \
                                         and data["Error"]["message"] is not None:
@@ -596,7 +590,6 @@ class Order:
                                     print("Error: Cancel Order API service error")
                         else:
                             # Handle errors
-                            logger.debug("Response Body: %s", response.text)
                             data = response.json()
                             if 'Error' in data and 'message' in data["Error"] and data["Error"]["message"] is not None:
                                 print("Error: " + data["Error"]["message"])
@@ -610,7 +603,6 @@ class Order:
                         print("Unknown Option Selected!")
                 else:
                     # Handle errors
-                    logger.debug("Response Body: %s", response_open.text)
                     if response_open is not None and response_open.headers['Content-Type'] == 'application/json' \
                             and "Error" in response_open.json() and "message" in response_open.json()["Error"] \
                             and response_open.json()["Error"]["message"] is not None:
@@ -620,7 +612,6 @@ class Order:
                     break
             else:
                 # Handle errors
-                logger.debug("Response Body: %s", response_open.text)
                 if response_open is not None and response_open.headers['Content-Type'] == 'application/json' \
                         and "Error" in response_open.json() and "message" in response_open.json()["Error"] \
                         and response_open.json()["Error"]["message"] is not None:
@@ -658,9 +649,6 @@ class Order:
 
             prev_orders = []
 
-            # Open orders
-            logger.debug("Response Body: %s", response_open.text)
-
             print("\nOpen Orders:")
             # Handle and parse response
             if response_open.status_code == 204:
@@ -673,10 +661,6 @@ class Order:
 
                 # Display list of open orders
                 prev_orders.extend(self.print_orders(data, "open"))
-
-            # Executed orders
-            logger.debug("Response Body: %s", response_executed.text)
-            logger.debug(response_executed.text)
 
             print("\nExecuted Orders:")
             # Handle and parse response
@@ -691,24 +675,16 @@ class Order:
                 # Display list of executed orders
                 prev_orders.extend(self.print_orders(data, "executed"))
 
-            # Individual fills orders
-            logger.debug("Response Body: %s", response_indiv_fills.text)
-
             print("\nIndividual Fills Orders:")
             # Handle and parse response
             if response_indiv_fills.status_code == 204:
-                logger.debug("Response Body: %s", response_indiv_fills)
                 print("None")
             elif response_indiv_fills.status_code == 200:
                 parsed = json.loads(response_indiv_fills.text)
-                logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
                 data = response_indiv_fills.json()
 
                 # Display list of individual fills orders
                 prev_orders.extend(self.print_orders(data, "indiv_fills"))
-
-            # Cancelled orders
-            logger.debug("Response Body: %s", response_cancelled.text)
 
             print("\nCancelled Orders:")
             # Handle and parse response
@@ -722,9 +698,6 @@ class Order:
 
                 # Display list of open orders
                 prev_orders.extend(self.print_orders(data, "cancelled"))
-
-            # Rejected orders
-            logger.debug("Response Body: %s", response_rejected.text)
 
             print("\nRejected Orders:")
             # Handle and parse response
@@ -743,7 +716,7 @@ class Order:
             print("\nExpired Orders:")
             # Handle and parse response
             if response_expired.status_code == 204:
-                logger.debug(response_executed)
+                logger.debug(response_expired)
                 print("None")
             elif response_expired.status_code == 200:
                 parsed = json.loads(response_expired.text)

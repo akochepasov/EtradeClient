@@ -73,7 +73,6 @@ class Market:
         # Make API call for GET request
         try:
             response = self.session.get(url, params=params, headers={"Accept": "application/json"}, timeout=self.timeout)
-            logger.debug("Request URL: %s", response.request.url)
         except Exception as exc:
             logger.error("Quote request failed: %s", exc)
             return self._empty_dataframe()
@@ -87,7 +86,6 @@ class Market:
 
         if response is not None and response.status_code == 200 and data is not None:
             parsed = json.loads(response.text)
-            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
             if "QuoteResponse" in data and "QuoteData" in data["QuoteResponse"]:
                 rows = self._extract_quote_rows(data["QuoteResponse"]["QuoteData"])
                 return pd.DataFrame(rows, columns=self.QUOTE_COLUMNS)

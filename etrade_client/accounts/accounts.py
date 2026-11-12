@@ -36,7 +36,6 @@ class Accounts:
         # Handle and parse response
         if response is not None and response.status_code == 200:
             parsed = json.loads(response.text)
-            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
 
             data = response.json()
             if data is not None and "AccountListResponse" in data and "Accounts" in data["AccountListResponse"] \
@@ -74,7 +73,6 @@ class Accounts:
                         print("Unknown Account Selected!")
             else:
                 # Handle errors
-                logger.debug("Response Body: %s", response.text)
                 if response is not None and response.headers['Content-Type'] == 'application/json' \
                         and "Error" in response.json() and "message" in response.json()["Error"] \
                         and response.json()["Error"]["message"] is not None:
@@ -83,7 +81,6 @@ class Accounts:
                     print("Error: AccountList API service error")
         else:
             # Handle errors
-            logger.debug("Response Body: %s", response.text)
             if response is not None and response.headers['Content-Type'] == 'application/json' \
                     and "Error" in response.json() and "message" in response.json()["Error"] \
                     and response.json()["Error"]["message"] is not None:
@@ -109,7 +106,6 @@ class Accounts:
         # Handle and parse response
         if response is not None and response.status_code == 200:
             parsed = json.loads(response.text)
-            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
             data = response.json()
 
             if data is not None and "PortfolioResponse" in data and "AccountPortfolio" in data["PortfolioResponse"]:
@@ -139,7 +135,6 @@ class Accounts:
                         print("None")
             else:
                 # Handle errors
-                logger.debug("Response Body: %s", response.text)
                 if response is not None and "headers" in response and "Content-Type" in response.headers \
                         and response.headers['Content-Type'] == 'application/json' \
                         and "Error" in response.json() and "message" in response.json()["Error"] \
@@ -151,7 +146,6 @@ class Accounts:
             print("None")
         else:
             # Handle errors
-            logger.debug("Response Body: %s", response.text)
             if response is not None and "headers" in response and "Content-Type" in response.headers \
                     and response.headers['Content-Type'] == 'application/json' \
                     and "Error" in response.json() and "message" in response.json()["Error"] \
@@ -176,12 +170,10 @@ class Accounts:
 
         # Make API call for GET request
         response = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
-        logger.debug("Request url: %s", url)
 
         # Handle and parse response
         if response is not None and response.status_code == 200:
             parsed = json.loads(response.text)
-            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
             data = response.json()
             if data is not None and "BalanceResponse" in data:
                 balance_data = data["BalanceResponse"]
@@ -205,7 +197,6 @@ class Accounts:
                     print("Cash Buying Power: " + str('${:,.2f}'.format(balance_data["Computed"]["cashBuyingPower"])))
             else:
                 # Handle errors
-                logger.debug("Response Body: %s", response.text)
                 if response is not None and response.headers['Content-Type'] == 'application/json' \
                         and "Error" in response.json() and "message" in response.json()["Error"] \
                         and response.json()["Error"]["message"] is not None:
@@ -214,7 +205,6 @@ class Accounts:
                     print("Error: Balance API service error")
         else:
             # Handle errors
-            logger.debug("Response Body: %s", response.text)
             if response is not None and response.headers['Content-Type'] == 'application/json' \
                     and "Error" in response.json() and "message" in response.json()["Error"] \
                     and response.json()["Error"]["message"] is not None:

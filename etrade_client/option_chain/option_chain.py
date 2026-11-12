@@ -107,7 +107,6 @@ class OptionChain:
         response = None
         try:
             response = self.session.get(url, params=params, headers={"Accept": "application/json"}, timeout=self.timeout)
-            logger.debug("Request URL: %s", response.request.url)
         except Exception as exc:
             logger.error("Request failed: %s", exc)
             print(f"Error: Request failed - {exc}")
@@ -126,7 +125,6 @@ class OptionChain:
         # Handle and parse response
         if response is not None and response.status_code == 200 and data is not None:
             parsed = json.loads(response.text)
-            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
 
             if self.as_dataframe:
                 return self._generate_dataframe(data)
@@ -136,7 +134,6 @@ class OptionChain:
         else:
             # Log actual response for debugging
             logger.debug("Response status: %s", response.status_code if response is not None else "none")
-            logger.debug("Response body: %s", response.text if response is not None else "none")
             # Show the most useful error message available
             if xml_error:
                 print(f"Error: {xml_error}")
@@ -171,7 +168,6 @@ class OptionChain:
         response = None
         try:
             response = self.session.get(url, params=params, headers={"Accept": "application/json"}, timeout=self.timeout)
-            logger.debug("Request URL: %s", response.request.url)
         except Exception as exc:
             logger.error("Request failed: %s", exc)
             print(f"Error: Request failed - {exc}")
@@ -188,7 +184,6 @@ class OptionChain:
 
         if response is not None and response.status_code == 200 and data is not None:
             parsed = json.loads(response.text)
-            logger.debug("Response Body: %s", json.dumps(parsed, indent=4, sort_keys=True))
 
             expiry_rows = self._extract_expiry_rows(data)
 
@@ -202,7 +197,6 @@ class OptionChain:
             return expiry_rows
 
         logger.debug("Response status: %s", response.status_code if response is not None else "none")
-        logger.debug("Response body: %s", response.text if response is not None else "none")
 
         if xml_error:
             print(f"Error: {xml_error}")
