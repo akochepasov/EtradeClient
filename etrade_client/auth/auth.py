@@ -102,7 +102,7 @@ def EtradeAuthorization(cfg, open_browser=True, timeout=DEFAULT_TIMEOUT):
         webbrowser.open(authorize_url)
     else:
         print(f"{authorize_url}")
-    verifier = input("Please accept agreement and enter verification code from browser: ").strip()
+    verifier = input("Enter verification code from browser: ").strip()
 
     # Step 3: Exchange request token for access token and build authenticated session.
     try:
