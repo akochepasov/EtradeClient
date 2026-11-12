@@ -1,5 +1,5 @@
 import webbrowser
-from dataclasses import dataclass
+from typing import NamedTuple
 
 import keyring
 from requests import RequestException
@@ -42,98 +42,93 @@ def ensure_credentials():
             raise RuntimeError('Consumer key and secret are required.')
 
 
-@dataclass
-class AuthorizationResult:
+class AuthorizationResult(NamedTuple):
+    """Authorization session and base URL, unpackable in that order."""
+
     session: OAuth1Session
     base_url: str
 
 
-class EtradeAuthorization:
-    """Handles OAuth 1 authorization flow for E*TRADE.
+def EtradeAuthorization(cfg, open_browser=True, timeout=DEFAULT_TIMEOUT):
+    """
+    Authorize user with OAuth and return session + base_url.
 
     Note: OAuth access tokens are not persisted across runs — the full
     browser authorization flow runs every time.  A future improvement
     would be to store tokens in keyring and reuse them until a 401.
+
+    :param cfg: selected config section (for example: config["DEFAULT"])
+    :param open_browser: open the default browser; if False, print the authorization URL
+    :param timeout: request timeout in seconds
+    :return: AuthorizationResult
     """
+    base_url = cfg.get("PROD_BASE_URL") # or cfg.get("SANDBOX_BASE_URL")
+    if not base_url:
+        raise RuntimeError("base_url is required")
 
-    def __init__(self, timeout=DEFAULT_TIMEOUT):
-        self.timeout = timeout
+    request_token_url = f"{base_url}/oauth/request_token"
+    access_token_url = f"{base_url}/oauth/access_token"
 
-    def authorize(self, cfg, open_browser=True):
-        """
-        Authorize user and return session + base_url.
+    consumer_key = get_consumer_key()
+    consumer_secret = get_consumer_secret()
 
-        :param cfg: selected config section (for example: config["DEFAULT"])
-        :param open_browser: open the default browser; if False, print the authorization URL
-        :return: AuthorizationResult
-        """
-        base_url = cfg.get("PROD_BASE_URL") # or cfg.get("SANDBOX_BASE_URL")
-        if not base_url:
-            raise RuntimeError("base_url is required")
+    oauth_session = OAuth1Session(
+        client_key=consumer_key,
+        client_secret=consumer_secret,
+        callback_uri="oob",
+    )
 
-        request_token_url = f"{base_url}/oauth/request_token"
-        access_token_url = f"{base_url}/oauth/access_token"
+    # Step 1: Get OAuth 1 request token and secret
+    try:
+        request_token_data = oauth_session.fetch_request_token(
+            request_token_url,
+            params={"format": "json"},
+            timeout=timeout,
+        )
+    except (RequestException, ValueError) as exc:
+        raise RuntimeError("Unable to fetch OAuth request token from E*TRADE.") from exc
 
-        consumer_key = get_consumer_key()
-        consumer_secret = get_consumer_secret()
+    request_token = request_token_data.get("oauth_token")
+    request_token_secret = request_token_data.get("oauth_token_secret")
+    if not request_token or not request_token_secret:
+        raise RuntimeError("E*TRADE did not return a valid OAuth request token response.")
 
+    # Step 2: Direct user to authorize and provide verifier code.
+    authorize_url = (
+        "https://us.etrade.com/e/t/etws/authorize"
+        f"?key={consumer_key}&token={request_token}"
+    )
+    if open_browser:
+        webbrowser.open(authorize_url)
+    else:
+        print(f"{authorize_url}")
+    verifier = input("Please accept agreement and enter verification code from browser: ").strip()
+
+    # Step 3: Exchange request token for access token and build authenticated session.
+    try:
         oauth_session = OAuth1Session(
             client_key=consumer_key,
             client_secret=consumer_secret,
-            callback_uri="oob",
+            resource_owner_key=request_token,
+            resource_owner_secret=request_token_secret,
+            verifier=verifier,
         )
+        access_token_data = oauth_session.fetch_access_token(access_token_url, timeout=timeout)
 
-        # Step 1: Get OAuth 1 request token and secret
-        try:
-            request_token_data = oauth_session.fetch_request_token(
-                request_token_url,
-                params={"format": "json"},
-                timeout=self.timeout,
-            )
-        except (RequestException, ValueError) as exc:
-            raise RuntimeError("Unable to fetch OAuth request token from E*TRADE.") from exc
-
-        request_token = request_token_data.get("oauth_token")
-        request_token_secret = request_token_data.get("oauth_token_secret")
-        if not request_token or not request_token_secret:
-            raise RuntimeError("E*TRADE did not return a valid OAuth request token response.")
-
-        # Step 2: Direct user to authorize and provide verifier code.
-        authorize_url = (
-            "https://us.etrade.com/e/t/etws/authorize"
-            f"?key={consumer_key}&token={request_token}"
+        access_token = access_token_data["oauth_token"]
+        access_token_secret = access_token_data["oauth_token_secret"]
+        session = OAuth1Session(
+            client_key=consumer_key,
+            client_secret=consumer_secret,
+            resource_owner_key=access_token,
+            resource_owner_secret=access_token_secret,
         )
-        if open_browser:
-            webbrowser.open(authorize_url)
-        else:
-            print(f"{authorize_url}")
-        verifier = input("Please accept agreement and enter verification code from browser: ").strip()
+    except (KeyError, RequestException, ValueError) as exc:
+        raise RuntimeError(
+            "OAuth access token exchange failed. This usually means one of: "
+            "(1) wrong consumer key/secret environment, "
+            "(2) request token expired or already used, "
+            "(3) incorrect verifier code."
+        ) from exc
 
-        # Step 3: Exchange request token for access token and build authenticated session.
-        try:
-            oauth_session = OAuth1Session(
-                client_key=consumer_key,
-                client_secret=consumer_secret,
-                resource_owner_key=request_token,
-                resource_owner_secret=request_token_secret,
-                verifier=verifier,
-            )
-            access_token_data = oauth_session.fetch_access_token(access_token_url, timeout=self.timeout)
-
-            access_token = access_token_data["oauth_token"]
-            access_token_secret = access_token_data["oauth_token_secret"]
-            session = OAuth1Session(
-                client_key=consumer_key,
-                client_secret=consumer_secret,
-                resource_owner_key=access_token,
-                resource_owner_secret=access_token_secret,
-            )
-        except (KeyError, RequestException, ValueError) as exc:
-            raise RuntimeError(
-                "OAuth access token exchange failed. This usually means one of: "
-                "(1) wrong consumer key/secret environment, "
-                "(2) request token expired or already used, "
-                "(3) incorrect verifier code."
-            ) from exc
-
-        return AuthorizationResult(session=session, base_url=base_url)
+    return AuthorizationResult(session=session, base_url=base_url)

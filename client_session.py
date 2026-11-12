@@ -24,31 +24,7 @@ def main():
 
     _ensure_credentials()
 
-    menu_items = {"1": "Sandbox Consumer Key",
-                  "2": "Live Consumer Key",
-                  "3": "Exit"}
-    while True:
-        print("")
-        options = menu_items.keys()
-        for entry in options:
-            print(entry + ")\t" + menu_items[entry])
-        selection = input("Please select Consumer Key Type: ")
-        if selection == "1":
-            base_url = cfg["SANDBOX_BASE_URL"]
-            break
-        elif selection == "2":
-            base_url = cfg["PROD_BASE_URL"]
-            break
-        elif selection == "3":
-            return
-        else:
-            print("Unknown Option Selected!")
-    print("")
-
-    auth = EtradeAuthorization()
-    auth_result = auth.authorize(cfg, base_url)
-
-    main_menu(auth_result.session, auth_result.base_url)
+    main_menu(*EtradeAuthorization(cfg))
 
 
 def _ensure_credentials():
