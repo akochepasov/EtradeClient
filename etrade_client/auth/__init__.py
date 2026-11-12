@@ -7,6 +7,7 @@ from .auth import (
 	get_consumer_secret,
 	set_consumer_key,
 	set_consumer_secret,
+	ensure_credentials,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
 	"get_consumer_secret",
 	"set_consumer_key",
 	"set_consumer_secret",
+	"ensure_credentials",
 ]

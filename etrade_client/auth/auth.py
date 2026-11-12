@@ -27,6 +27,20 @@ def set_consumer_secret(value: str) -> None:
     """Store the E*TRADE consumer secret in the system keychain."""
     keyring.set_password("EtradeClient", "CONSUMER_SECRET", value)
 
+# Ensure credentials are in keyring (prompts only if missing)
+def ensure_credentials():
+    if not get_consumer_key():
+        print('No E*TRADE API credentials found.')
+        print('Get these from the E*TRADE Developer Portal.\n')
+        ck = input('Consumer key: ').strip()
+        cs = input('Consumer secret: ').strip()
+        if ck and cs:
+            set_consumer_key(ck)
+            set_consumer_secret(cs)
+            print('Credentials saved.\n')
+        else:
+            raise RuntimeError('Consumer key and secret are required.')
+
 
 @dataclass
 class AuthorizationResult:
@@ -45,15 +59,15 @@ class EtradeAuthorization:
     def __init__(self, timeout=DEFAULT_TIMEOUT):
         self.timeout = timeout
 
-    def authorize(self, cfg, base_url, open_browser=True):
+    def authorize(self, cfg, open_browser=True):
         """
         Authorize user and return session + base_url.
 
         :param cfg: selected config section (for example: config["DEFAULT"])
-        :param base_url: selected base URL
         :param open_browser: open the default browser; if False, print the authorization URL
         :return: AuthorizationResult
         """
+        base_url = cfg.get("PROD_BASE_URL") # or cfg.get("SANDBOX_BASE_URL")
         if not base_url:
             raise RuntimeError("base_url is required")
 
@@ -92,7 +106,7 @@ class EtradeAuthorization:
         if open_browser:
             webbrowser.open(authorize_url)
         else:
-            print(f"Open this URL in your browser to authorize: {authorize_url}")
+            print(f"{authorize_url}")
         verifier = input("Please accept agreement and enter verification code from browser: ").strip()
 
         # Step 3: Exchange request token for access token and build authenticated session.
