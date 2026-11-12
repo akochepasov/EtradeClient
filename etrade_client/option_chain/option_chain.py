@@ -378,8 +378,9 @@ class OptionChain:
 
 
 _RESEARCH_COLUMNS = [
-    "optionType", "delta", "strikePrice", "bid", "ask",
-    "lastPrice", "volume", "openInterest",
+    "optionType", "strikePrice", "delta", 
+    "openInterest", "volume", 
+    "lastPrice", "bid", "ask",
 ]
 
 
@@ -420,5 +421,5 @@ def extend_options_research(chain_df, cost_basis, days, qty=100):
     assert days > 0, f"Days to expiry must be positive: {days}"
     chain_df = chain_df.assign(gain_total=lambda x: x.mark * qty)
     capital_per_share = chain_df.strikePrice.where(chain_df.optionType == "PUT", cost_basis)
-    chain_df = chain_df.assign(annual_rate=100 * chain_df.mark / capital_per_share * 365 / days)
-    return chain_df
+    chain_df_ret = chain_df.assign(annual_rate=100 * chain_df.mark / capital_per_share * 365 / days)
+    return chain_df_ret
