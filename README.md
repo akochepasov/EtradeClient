@@ -43,7 +43,7 @@ keyring.set_password('EtradeClient', 'CONSUMER_SECRET', 'YOUR_SECRET')
 "
 ```
 
-`config.ini` still holds non-sensitive base URLs only:
+`config.ini` holds non-sensitive base URLs only:
 
 ```ini
 [DEFAULT]
@@ -53,15 +53,16 @@ PROD_BASE_URL=https://api.etrade.com
 
 ## Authorization
 
-`EtradeAuthorization.authorize(cfg, base_url)` opens the default browser.
+`EtradeAuthorization(cfg)` opens the default browser.
 To use a different browser, print the authorization URL instead:
 
 ```python
-auth_result = EtradeAuthorization().authorize(cfg, base_url, open_browser=False)
+session, base_url = EtradeAuthorization(cfg, open_browser=False)
 ```
 
 Open the printed URL in your preferred browser and enter the verification code
 when prompted. Treat the URL as sensitive; it contains an OAuth request token.
+The result also supports named access via `.session` and `.base_url`.
 
 ## Timeouts and logging
 
