@@ -1,9 +1,18 @@
 from etrade_client.logger import get_logger
 
+import datetime as dt
+
 import pandas as pd
 import io
 
 logger = get_logger()
+
+
+_RESEARCH_COLUMNS = [
+    "optionType", "strikePrice", "delta",
+    "openInterest", "volume",
+    "lastPrice", "bid", "ask",
+]
 
 
 class OptionsResearchDelta:
@@ -12,7 +21,7 @@ class OptionsResearchDelta:
     a compact DataFrame with pricing and greek fields.
     """
 
-    def __init__(self, delta_lo=-0.99, delta_hi=0.99, include=True):
+    def __init__(self, opt_type, delta_lo=0.05, delta_hi=0.3, include=True):
         """
         Initialize OptionsResearchDelta object.
 
@@ -21,11 +30,12 @@ class OptionsResearchDelta:
         :param include: if true, keep rows with delta inside [delta_lo, delta_hi];
                         if false, keep rows with delta outside [delta_lo, delta_hi]
         """
+        self.opt_type = opt_type
         self.include = bool(include)
         self.delta_lo = delta_lo
         self.delta_hi = delta_hi
 
-    def Find(self, chain_data):
+    def find(self, chain_data):
         """
         Find and filter options by delta from option chain data returned by OptionChain.view().
 
@@ -69,6 +79,28 @@ class OptionsResearchDelta:
 
         return pd.DataFrame(rows, columns=["options_ticker", "buy", "sell", "mark", "volume", "delta"])
 
+    def result(self, chain, cost_basis, date, qty=100):
+        """
+        Add premium and annualized yield columns.
+
+        Puts use strike price as capital per share. Other option types use cost_basis.
+
+        :param chain: option chain DataFrame
+        :param cost_basis: per-share capital used for non-put yields
+        :param date: expiration date; must be in the future
+        :param qty: share multiplier, 100 for one contract
+        :return: DataFrame with gain_total and annual_rate
+        """
+        days = (date - dt.datetime.today()).days
+        if days <= 0:
+            raise ValueError(f"Date should be in the future: {date}")
+
+        result = self._get_research(chain)
+        result = result.assign(mark=lambda frame: (frame.ask + frame.bid) / 2)
+        result = result.assign(gain_total=lambda frame: frame.mark * qty)
+        capital_per_share = result.strikePrice.where(result.optionType == "PUT", cost_basis)
+        return result.assign(annual_rate=100 * result.mark / capital_per_share * 365 / days)
+
     def _to_dataframe(self, chain_data):
         if chain_data is None:
             return None
@@ -108,6 +140,26 @@ class OptionsResearchDelta:
             df = df[~in_range_mask]
 
         return df
+
+    def _get_research(self, chain_df, query_param=None):
+        """
+        Filter an option-chain DataFrame for a given option type and delta range.
+
+        :param chain_df: option chain DataFrame
+        :param query_param: optional pandas query string
+        :return: filtered DataFrame with a midpoint mark column
+        """
+        opt_type = self.opt_type
+        delta_min = self.delta_lo
+        delta_max = self.delta_hi
+        option_mask = chain_df["optionType"] == opt_type
+        delta_mask = (abs(chain_df["delta"]) >= delta_min) & (abs(chain_df["delta"]) < delta_max)
+        open_interest_mask = chain_df["openInterest"] != 0
+        result = chain_df[option_mask & delta_mask & open_interest_mask]
+        if query_param:
+            result = result.query(query_param)
+        result = result[_RESEARCH_COLUMNS]
+        return result
 
     def _to_float(self, value):
         try:

@@ -32,8 +32,8 @@ class OptionChain:
         "optionCategory", "optionRootSymbol", "adjustedFlag",
     ]
 
-    def __init__(self, session, base_url, symbol, option_category="STANDARD", chain_type="CALLPUT", as_dataframe=False,
-                 timeout=DEFAULT_TIMEOUT):
+    def __init__(self, session, base_url, symbol, option_category="STANDARD", chain_type="CALLPUT", 
+                as_dataframe=True, timeout=DEFAULT_TIMEOUT):
         """
         Initialize OptionChain object with session and base URL
 
@@ -60,7 +60,7 @@ class OptionChain:
         """
         Retrieves option chain data for a given symbol and expiration date
 
-        :param expiry_date: Expiry date in MM-DD-YYYY format (for example: 06-18-2026)
+        :param expiry_date: Expiry date in datetime format
         :param strike_price_near: The optionchains fetched will have strike price nearer to this value
         :param no_of_strikes: Indicates number of strikes for which the optionchain needs to be fetched
         :param skip_adjusted: The skip adjusted request. Default: true
@@ -84,13 +84,12 @@ class OptionChain:
         # Add optional parameters if provided
         if expiry_date:
             try:
-                parsed_expiry = datetime.strptime(str(expiry_date), "%m-%d-%Y")
-                params["expiryYear"] = parsed_expiry.year
-                params["expiryMonth"] = parsed_expiry.month
-                params["expiryDay"] = parsed_expiry.day
-            except ValueError:
-                print("Error: expiry_date must be in MM-DD-YYYY format")
-                logger.error("Invalid expiry_date format: %s", expiry_date)
+                params["expiryYear"] = expiry_date.year
+                params["expiryMonth"] = expiry_date.month
+                params["expiryDay"] = expiry_date.day
+            except AttributeError:
+                print("Error: expiry_date must be a datetime object")
+                logger.error("Invalid expiry_date type: %s", expiry_date)
                 return None
         if strike_price_near:
             params["strikePriceNear"] = strike_price_near
@@ -147,6 +146,14 @@ class OptionChain:
                 status = response.status_code if response is not None else "none"
                 print(f"Error: Option Chain API service error (HTTP {status})")
             return None
+
+    def getForwardDaysView(self, min_days=1, max_days=45):
+        req_date = datetime.today()
+        dates = self.getExpiryDates()["expiryDate"]
+        exp_dates1 = (datetime.strptime(d, "%m-%d-%Y") for d in dates)
+        exp_dates2 = (d for d in exp_dates1 if min_days <= (d - req_date).days <= max_days)
+        exp_chains = {d : self.view(d) for d in exp_dates2}
+        return exp_chains
 
     def getExpiryDates(self, expiry_type=None, weekly=None):
         """
@@ -369,51 +376,3 @@ class OptionChain:
             "adjustedFlag":     option.get("adjustedFlag", ""),
         }
         return row
-
-
-_RESEARCH_COLUMNS = [
-    "optionType", "strikePrice", "delta", 
-    "openInterest", "volume", 
-    "lastPrice", "bid", "ask",
-]
-
-
-def get_options_research(chain_df, opt_type, delta_min=0.05, delta_max=0.3, query_param=None):
-    """
-    Filter an option-chain DataFrame for research.
-
-    :param chain_df: option chain DataFrame
-    :param opt_type: option type to keep, such as CALL or PUT
-    :param delta_min: minimum absolute delta, inclusive
-    :param delta_max: maximum absolute delta, exclusive
-    :param query_param: optional pandas query string
-    :return: filtered DataFrame with a midpoint mark column
-    """
-    option_mask = (chain_df["optionType"] == opt_type)
-    delta_mask = (abs(chain_df["delta"]) >= delta_min) & (abs(chain_df["delta"]) < delta_max)
-    open_interest_mask = (chain_df["openInterest"] != 0)
-    chain_df = chain_df[option_mask & delta_mask & open_interest_mask]
-    if query_param:
-        chain_df = chain_df.query(query_param)
-    chain_df = chain_df[_RESEARCH_COLUMNS]
-    chain_df = chain_df.assign(mark=lambda x: (x.ask + x.bid) / 2)
-    return chain_df
-
-
-def extend_options_research(chain_df, cost_basis, days, qty=100):
-    """
-    Add premium and annualized yield columns.
-
-    Puts use strike price as capital per share. Other option types use cost_basis.
-
-    :param chain_df: filtered chain with a mark column
-    :param cost_basis: per-share capital used for non-put yields
-    :param days: calendar days to expiry; must be positive
-    :param qty: share multiplier, 100 for one contract
-    :return: DataFrame with gain_total and annual_rate
-    """
-    assert days > 0, f"Days to expiry must be positive: {days}"
-    chain_df = chain_df.assign(gain_total=lambda x: x.mark * qty)
-    capital_per_share = chain_df.strikePrice.where(chain_df.optionType == "PUT", cost_basis)
-    chain_df_ret = chain_df.assign(annual_rate=100 * chain_df.mark / capital_per_share * 365 / days)
-    return chain_df_ret

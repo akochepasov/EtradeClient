@@ -97,6 +97,7 @@ def option_chain_view(session, base_url):
         symbol=symbol,
         option_category=option_category,
         chain_type=chain_type,
+        as_dataframe=False,
     )
 
     # Convert string inputs to appropriate types
