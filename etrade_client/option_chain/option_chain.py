@@ -417,7 +417,7 @@ def extend_options_research(chain_df, cost_basis, d, qty=100):
     :param qty: share multiplier, 100 for one contract
     :return: DataFrame with gain_total and annual_rate
     """
-    assert d > 0, "Days to expiry must be positive"
+    assert d > 0, f"Days to expiry must be positive: {d}"
     chain_df = chain_df.assign(gain_total=lambda x: x.mark * qty)
     capital_per_share = chain_df.strikePrice.where(chain_df.optionType == "PUT", cost_basis)
     chain_df = chain_df.assign(annual_rate=100 * chain_df.mark / capital_per_share * 365 / d)
