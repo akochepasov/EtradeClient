@@ -1,6 +1,7 @@
 import json
 
 from etrade_client.auth.auth import get_consumer_key
+from etrade_client.common import DEFAULT_TIMEOUT
 from etrade_client.logger import get_logger
 from etrade_client.order.order import Order
 
@@ -8,7 +9,7 @@ logger = get_logger()
 
 
 class Accounts:
-    def __init__(self, session, base_url):
+    def __init__(self, session, base_url, timeout=DEFAULT_TIMEOUT):
         """
         Initialize Accounts object with session and account information
 
@@ -17,6 +18,7 @@ class Accounts:
         self.session = session
         self.account = {}
         self.base_url = base_url
+        self.timeout = timeout
 
     def account_list(self):
         """
@@ -29,8 +31,7 @@ class Accounts:
         url = self.base_url + "/v1/accounts/list.json"
 
         # Make API call for GET request
-        response = self.session.get(url)
-        logger.debug("Request Header: %s", response.request.headers)
+        response = self.session.get(url, timeout=self.timeout)
 
         # Handle and parse response
         if response is not None and response.status_code == 200:
@@ -101,8 +102,7 @@ class Accounts:
         url =self.base_url + "/v1/accounts/" + self.account["accountIdKey"] + "/portfolio.json"
 
         # Make API call for GET request
-        response = self.session.get(url)
-        logger.debug("Request Header: %s", response.request.headers)
+        response = self.session.get(url, timeout=self.timeout)
 
         print("\nPortfolio:")
 
@@ -175,9 +175,8 @@ class Accounts:
         headers = {"consumerkey": get_consumer_key()}
 
         # Make API call for GET request
-        response = self.session.get(url, params=params, headers=headers)
+        response = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
         logger.debug("Request url: %s", url)
-        logger.debug("Request Header: %s", response.request.headers)
 
         # Handle and parse response
         if response is not None and response.status_code == 200:
@@ -248,7 +247,7 @@ class Accounts:
                 elif selection == "2":
                     self.portfolio()
                 elif selection == "3":
-                    order = Order(self.session, self.account, self.base_url)
+                    order = Order(self.session, self.account, self.base_url, timeout=self.timeout)
                     order.view_orders()
                 elif selection == "4":
                     break

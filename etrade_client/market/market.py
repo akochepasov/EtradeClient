@@ -1,5 +1,6 @@
 import json
 from urllib.parse import quote as urllib_quote
+from etrade_client.common import DEFAULT_TIMEOUT
 from etrade_client.logger import get_logger
 
 logger = get_logger()
@@ -24,9 +25,10 @@ class Market:
         "volume",
     ]
 
-    def __init__(self, session, base_url):
+    def __init__(self, session, base_url, timeout=DEFAULT_TIMEOUT):
         self.session = session
         self.base_url = base_url
+        self.timeout = timeout
 
     def _get_pandas(self):
         try:
@@ -70,8 +72,7 @@ class Market:
 
         # Make API call for GET request
         try:
-            response = self.session.get(url, params=params, headers={"Accept": "application/json"})
-            logger.debug("Request Header: %s", response.request.headers)
+            response = self.session.get(url, params=params, headers={"Accept": "application/json"}, timeout=self.timeout)
             logger.debug("Request URL: %s", response.request.url)
         except Exception as exc:
             logger.error("Quote request failed: %s", exc)

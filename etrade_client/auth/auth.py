@@ -5,6 +5,8 @@ import keyring
 from requests import RequestException
 from requests_oauthlib import OAuth1Session
 
+from etrade_client.common import DEFAULT_TIMEOUT
+
 
 def get_consumer_key() -> str:
     """Return the E*TRADE consumer key from the system keychain."""
@@ -40,6 +42,9 @@ class EtradeAuthorization:
     would be to store tokens in keyring and reuse them until a 401.
     """
 
+    def __init__(self, timeout=DEFAULT_TIMEOUT):
+        self.timeout = timeout
+
     def authorize(self, cfg, base_url, open_browser=True):
         """
         Authorize user and return session + base_url.
@@ -69,6 +74,7 @@ class EtradeAuthorization:
             request_token_data = oauth_session.fetch_request_token(
                 request_token_url,
                 params={"format": "json"},
+                timeout=self.timeout,
             )
         except (RequestException, ValueError) as exc:
             raise RuntimeError("Unable to fetch OAuth request token from E*TRADE.") from exc
@@ -98,7 +104,7 @@ class EtradeAuthorization:
                 resource_owner_secret=request_token_secret,
                 verifier=verifier,
             )
-            access_token_data = oauth_session.fetch_access_token(access_token_url)
+            access_token_data = oauth_session.fetch_access_token(access_token_url, timeout=self.timeout)
 
             access_token = access_token_data["oauth_token"]
             access_token_secret = access_token_data["oauth_token_secret"]

@@ -3,6 +3,7 @@ import csv
 import io
 from datetime import datetime
 import xml.etree.ElementTree as ET
+from etrade_client.common import DEFAULT_TIMEOUT
 from etrade_client.logger import get_logger
 
 import pandas as pd
@@ -20,6 +21,7 @@ class OptionChain:
     :param option_category: The option category. Default: STANDARD. Options: STANDARD, ALL, MINI
     :param chain_type: The type of option chain. Default: CALLPUT. Options: CALL, PUT, CALLPUT
     :param as_dataframe: If true, methods return pandas DataFrames where supported
+    :param timeout: requests timeout in seconds (or a connect/read tuple)
     """
 
     CSV_HEADERS = [
@@ -30,7 +32,8 @@ class OptionChain:
         "optionCategory", "optionRootSymbol", "adjustedFlag",
     ]
 
-    def __init__(self, session, base_url, symbol, option_category="STANDARD", chain_type="CALLPUT", as_dataframe=False):
+    def __init__(self, session, base_url, symbol, option_category="STANDARD", chain_type="CALLPUT", as_dataframe=False,
+                 timeout=DEFAULT_TIMEOUT):
         """
         Initialize OptionChain object with session and base URL
 
@@ -48,6 +51,7 @@ class OptionChain:
         self.option_category = option_category
         self.chain_type = chain_type
         self.as_dataframe = bool(as_dataframe)
+        self.timeout = timeout
 
     def view(self, expiry_date=None,
              strike_price_near=None, no_of_strikes=None,
@@ -102,8 +106,7 @@ class OptionChain:
         # Make API call
         response = None
         try:
-            response = self.session.get(url, params=params, headers={"Accept": "application/json"})
-            logger.debug("Request Header: %s", response.request.headers)
+            response = self.session.get(url, params=params, headers={"Accept": "application/json"}, timeout=self.timeout)
             logger.debug("Request URL: %s", response.request.url)
         except Exception as exc:
             logger.error("Request failed: %s", exc)
@@ -167,8 +170,7 @@ class OptionChain:
 
         response = None
         try:
-            response = self.session.get(url, params=params, headers={"Accept": "application/json"})
-            logger.debug("Request Header: %s", response.request.headers)
+            response = self.session.get(url, params=params, headers={"Accept": "application/json"}, timeout=self.timeout)
             logger.debug("Request URL: %s", response.request.url)
         except Exception as exc:
             logger.error("Request failed: %s", exc)

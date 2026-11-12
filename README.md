@@ -62,3 +62,9 @@ auth_result = EtradeAuthorization().authorize(cfg, base_url, open_browser=False)
 
 Open the printed URL in your preferred browser and enter the verification code
 when prompted. Treat the URL as sensitive; it contains an OAuth request token.
+
+## Timeouts and logging
+
+OAuth and API requests default to a 30-second timeout. Set `timeout` on
+`EtradeAuthorization`, `Market`, `Accounts`, `OptionChain`, or `Order` to
+override it; connect/read timeout tuples are also supported.

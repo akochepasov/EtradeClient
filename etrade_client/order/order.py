@@ -3,6 +3,7 @@ import random
 import re
 
 from etrade_client.auth.auth import get_consumer_key
+from etrade_client.common import DEFAULT_TIMEOUT
 from etrade_client.logger import get_logger
 
 logger = get_logger()
@@ -10,10 +11,11 @@ logger = get_logger()
 
 class Order:
 
-    def __init__(self, session, account, base_url):
+    def __init__(self, session, account, base_url, timeout=DEFAULT_TIMEOUT):
         self.session = session
         self.account = account
         self.base_url = base_url
+        self.timeout = timeout
 
     def preview_order(self):
         """
@@ -58,8 +60,7 @@ class Order:
                                  order["limit_price"], order["symbol"], order["order_action"], order["quantity"])
 
         # Make API call for POST request
-        response = self.session.post(url, headers=headers, data=payload)
-        logger.debug("Request Header: %s", response.request.headers)
+        response = self.session.post(url, headers=headers, data=payload, timeout=self.timeout)
         logger.debug("Request payload: %s", payload)
 
         # Handle and parse response
@@ -193,8 +194,7 @@ class Order:
                                              prev_orders[options_select - 1]["quantity"])
 
                     # Make API call for POST request
-                    response = session.post(url, headers=headers, data=payload)
-                    logger.debug("Request Header: %s", response.request.headers)
+                    response = session.post(url, headers=headers, data=payload, timeout=self.timeout)
                     logger.debug("Request payload: %s", payload)
 
                     # Handle and parse response
@@ -459,9 +459,8 @@ class Order:
             headers = {"consumerkey": get_consumer_key()}
 
             # Make API call for GET request
-            response_open = self.session.get(url, params=params_open, headers=headers)
+            response_open = self.session.get(url, params=params_open, headers=headers, timeout=self.timeout)
 
-            logger.debug("Request Header: %s", response_open.request.headers)
             logger.debug("Response Body: %s", response_open.text)
 
             print("\nOpen Orders: ")
@@ -574,8 +573,7 @@ class Order:
                         payload = payload.format(order_list[int(selection) - 1])
 
                         # Add payload for PUT Request
-                        response = self.session.put(url, headers=headers, data=payload)
-                        logger.debug("Request Header: %s", response.request.headers)
+                        response = self.session.put(url, headers=headers, data=payload, timeout=self.timeout)
                         logger.debug("Request payload: %s", payload)
 
                         # Handle and parse response
@@ -589,7 +587,6 @@ class Order:
                                     data["CancelOrderResponse"]["orderId"]) + " successfully Cancelled.")
                             else:
                                 # Handle errors
-                                logger.debug("Response Headers: %s", response.headers)
                                 logger.debug("Response Body: %s", response.text)
                                 data = response.json()
                                 if 'Error' in data and 'message' in data["Error"] \
@@ -599,7 +596,6 @@ class Order:
                                     print("Error: Cancel Order API service error")
                         else:
                             # Handle errors
-                            logger.debug("Response Headers: %s", response.headers)
                             logger.debug("Response Body: %s", response.text)
                             data = response.json()
                             if 'Error' in data and 'message' in data["Error"] and data["Error"]["message"] is not None:
@@ -653,17 +649,16 @@ class Order:
             params_expired = {"status": "EXPIRED"}
 
             # Make API call for GET request
-            response_open = self.session.get(url, params=params_open, headers=headers)
-            response_executed = self.session.get(url, params=params_executed, headers=headers)
-            response_indiv_fills = self.session.get(url, params=params_indiv_fills, headers=headers)
-            response_cancelled = self.session.get(url, params=params_cancelled, headers=headers)
-            response_rejected = self.session.get(url, params=params_rejected, headers=headers)
-            response_expired = self.session.get(url, params=params_expired, headers=headers)
+            response_open = self.session.get(url, params=params_open, headers=headers, timeout=self.timeout)
+            response_executed = self.session.get(url, params=params_executed, headers=headers, timeout=self.timeout)
+            response_indiv_fills = self.session.get(url, params=params_indiv_fills, headers=headers, timeout=self.timeout)
+            response_cancelled = self.session.get(url, params=params_cancelled, headers=headers, timeout=self.timeout)
+            response_rejected = self.session.get(url, params=params_rejected, headers=headers, timeout=self.timeout)
+            response_expired = self.session.get(url, params=params_expired, headers=headers, timeout=self.timeout)
 
             prev_orders = []
 
             # Open orders
-            logger.debug("Request Header: %s", response_open.request.headers)
             logger.debug("Response Body: %s", response_open.text)
 
             print("\nOpen Orders:")
@@ -680,7 +675,6 @@ class Order:
                 prev_orders.extend(self.print_orders(data, "open"))
 
             # Executed orders
-            logger.debug("Request Header: %s", response_executed.request.headers)
             logger.debug("Response Body: %s", response_executed.text)
             logger.debug(response_executed.text)
 
@@ -698,7 +692,6 @@ class Order:
                 prev_orders.extend(self.print_orders(data, "executed"))
 
             # Individual fills orders
-            logger.debug("Request Header: %s", response_indiv_fills.request.headers)
             logger.debug("Response Body: %s", response_indiv_fills.text)
 
             print("\nIndividual Fills Orders:")
@@ -715,7 +708,6 @@ class Order:
                 prev_orders.extend(self.print_orders(data, "indiv_fills"))
 
             # Cancelled orders
-            logger.debug("Request Header: %s", response_cancelled.request.headers)
             logger.debug("Response Body: %s", response_cancelled.text)
 
             print("\nCancelled Orders:")
@@ -732,7 +724,6 @@ class Order:
                 prev_orders.extend(self.print_orders(data, "cancelled"))
 
             # Rejected orders
-            logger.debug("Request Header: %s", response_rejected.request.headers)
             logger.debug("Response Body: %s", response_rejected.text)
 
             print("\nRejected Orders:")
